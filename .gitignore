@@ -79,3 +79,6 @@ qqbot/elevated-test.txt
 # ---- B 站抓取产物（脚本生成的数据，不入库）----
 bili/*.json
 bili/covers/
+
+# ---- 沙箱 ACL 修复报告（本机工具产物）----
+.acl-reports/
