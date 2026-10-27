@@ -427,6 +427,36 @@ async function main() {
     }
   });
 
+  await check('历史分页与解密', async () => {
+    for (let i = 0; i < 60; i++) {
+      const clientId = randomB64(16);
+      const aad = messageAad(roomId, meB.member.id, 'text', clientId);
+      const p = sealPayload(msgKey, aad, { text: `批量消息 ${i}` });
+      const r = await api(B, '/api/messages', {
+        method: 'POST',
+        body: { clientId, kind: 'text', nonce: p.nonce, ct: p.ct, attachmentIds: [] },
+      });
+      expectStatus(r, 201, 'bulk send');
+    }
+    const latest = await api(B, '/api/messages?limit=20');
+    expectStatus(latest, 200, 'latest page');
+    assert.equal(latest.data.messages.length, 20);
+    assert.equal(latest.data.hasMore, true);
+    assert.equal(latest.data.messages[19].seq, latest.data.lastSeq);
+    const firstOfLatest = latest.data.messages[0].seq;
+
+    const older = await api(B, `/api/messages?before=${firstOfLatest}&limit=20`);
+    expectStatus(older, 200, 'older page');
+    assert.equal(older.data.messages.length, 20);
+    assert.equal(older.data.messages[19].seq, firstOfLatest - 1);
+
+    const m = latest.data.messages[19];
+    const payload = openPayload(
+      msgKey, messageAad(roomId, meB.member.id, 'text', m.clientId), m.nonce, m.ct,
+    );
+    assert.match(payload.text, /^批量消息 \d+$/);
+  });
+
   await check('CSRF 与 Origin 防护', async () => {
     const noCsrf = await fetchRetry(`${BASE}/api/auth/logout`, { method: 'POST', headers: { Cookie: A.cookie } });
     assert.equal(noCsrf.status, 403);

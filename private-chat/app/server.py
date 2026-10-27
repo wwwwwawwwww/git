@@ -26,6 +26,7 @@ import queue
 import re
 import secrets
 import socket
+import socketserver
 import sqlite3
 import sys
 import threading
@@ -1390,14 +1391,18 @@ def lan_ips() -> list[str]:
         s.close()
     except OSError:
         pass
-    try:
-        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
-            ip = info[4][0]
-            if ip not in ips and not ip.startswith("127."):
-                ips.append(ip)
-    except OSError:
-        pass
     return ips
+
+
+class ChatHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def server_bind(self):
+        # 不用 HTTPServer 默认的 getfqdn：某些网络下反查 DNS 会卡几十秒甚至更久，
+        # 表现就是进程起来了但端口一直不监听。
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = "localhost"
+        self.server_port = self.server_address[1]
 
 
 def main() -> int:
@@ -1416,8 +1421,7 @@ def main() -> int:
 
     init_db()
 
-    server = ThreadingHTTPServer((args.host, args.port), Handler)
-    server.daemon_threads = True
+    server = ChatHTTPServer((args.host, args.port), Handler)
     actual_port = server.server_address[1]
     print(f"\n  私密双人聊天 v{VERSION}")
     print(f"  数据目录: {DATA_DIR}")
