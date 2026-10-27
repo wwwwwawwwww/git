@@ -226,7 +226,29 @@ async function main() {
   });
 
   await check('关闭邀请弹层并截图', async () => {
-    await A.cdp.eval("document.querySelector('[data-close-sheet=\"sheet-invite\"]').click(); true");
+    await A.cdp.eval("document.querySelector('[data-close-sheet=\"invite\"]').click(); true");
+    await sleep(350);
+    await A.cdp.waitFor("!document.getElementById('empty-state').classList.contains('hidden')", 5000, '空状态');
+    const debugEmpty = await A.cdp.eval(`(() => {
+      const e = document.getElementById('empty-state');
+      const m = document.getElementById('messages');
+      const t = document.getElementById('timeline');
+      const r = e.getBoundingClientRect();
+      const rm = m.getBoundingClientRect();
+      const rt = t.getBoundingClientRect();
+      return {
+        hidden: e.classList.contains('hidden'),
+        display: getComputedStyle(e).display,
+        text: e.textContent.trim(),
+        rect: [r.x, r.y, r.width, r.height],
+        msgRect: [rm.x, rm.y, rm.width, rm.height],
+        msgScroll: [m.scrollTop, m.scrollHeight, m.clientHeight],
+        timelineRect: [rt.x, rt.y, rt.width, rt.height],
+      };
+    })()`);
+    if (debugEmpty.display === 'none' || debugEmpty.rect[3] < 20) {
+      throw new Error('空状态没有显示: ' + JSON.stringify(debugEmpty));
+    }
     await A.cdp.screenshot('02-chat-empty.png');
   });
 
@@ -319,11 +341,20 @@ async function main() {
 
   await check('发送加密图片', async () => {
     await A.cdp.eval(`(async () => {
-      const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlS8AAAAASUVORK5CYII=';
-      const bin = atob(b64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const file = new File([bytes], '小方块.png', { type: 'image/png' });
+      const canvas = document.createElement('canvas');
+      canvas.width = 300;
+      canvas.height = 180;
+      const ctx = canvas.getContext('2d');
+      const g = ctx.createLinearGradient(0, 0, 300, 180);
+      g.addColorStop(0, '#2f6fd0');
+      g.addColorStop(1, '#61d4d4');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 300, 180);
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.font = 'bold 30px "Microsoft YaHei", sans-serif';
+      ctx.fillText('鱼缸明信片', 34, 104);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      const file = new File([blob], '鱼缸明信片.png', { type: 'image/png' });
       const dt = new DataTransfer();
       dt.items.add(file);
       const input = document.getElementById('file-input');
@@ -332,11 +363,11 @@ async function main() {
       return true;
     })()`);
     await A.cdp.waitFor(
-      "[...document.querySelectorAll('.msg.self .bubble')].some(b => b.textContent.includes('小方块.png') || b.querySelector('img'))",
-      30000, 'A 的图片消息',
+      "[...document.querySelectorAll('.msg.self .bubble img')].some(img => img.complete && img.naturalWidth > 0)",
+      30000, 'A 的图片显示',
     );
     await B.cdp.waitFor(
-      "[...document.querySelectorAll('.msg.peer .bubble')].some(b => b.querySelector('img'))",
+      "[...document.querySelectorAll('.msg.peer .bubble img')].some(img => img.complete && img.naturalWidth > 0)",
       30000, 'B 收到并解密图片',
     );
   });
@@ -358,8 +389,9 @@ async function main() {
   await check('设置页截图', async () => {
     await A.cdp.eval("document.getElementById('btn-settings').click(); true");
     await A.cdp.waitFor("!document.getElementById('sheet-settings').classList.contains('hidden')", 5000, '设置页');
+    await sleep(450);
     await A.cdp.screenshot('06-settings.png');
-    await A.cdp.eval("document.querySelector('[data-close-sheet=\"sheet-settings\"]').click(); true");
+    await A.cdp.eval("document.querySelector('[data-close-sheet=\"settings\"]').click(); true");
   });
 
   await check('锁定本机后用密码解锁', async () => {

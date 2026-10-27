@@ -206,6 +206,7 @@ async function main() {
     if (typeof form.requestSubmit === 'function') form.requestSubmit();
     else form.dispatchEvent(new window.SubmitEvent('submit', { bubbles: true, cancelable: true }));
     await waitFor(() => visible('screen-chat'), 60000, '进入聊天');
+    await waitFor(() => !doc.getElementById('empty-state').classList.contains('hidden'), 5000, '空状态');
     const title = doc.getElementById('room-title').textContent;
     if (title !== '鱼缸') throw new Error('房间名不对: ' + title);
   });
@@ -214,7 +215,8 @@ async function main() {
     await waitFor(() => doc.getElementById('invite-link').value.length > 20, 15000, '邀请链接');
     const link = doc.getElementById('invite-link').value;
     if (!link.includes('#/join?') || !link.includes('&k=')) throw new Error('链接格式不对: ' + link);
-    doc.querySelector('[data-close-sheet="sheet-invite"]').click();
+    doc.querySelector('[data-close-sheet="invite"]').click();
+    if (!doc.getElementById('sheet-invite').classList.contains('hidden')) throw new Error('邀请弹层没关掉');
   });
 
   await check('发送并渲染加密消息', async () => {
@@ -245,7 +247,10 @@ async function main() {
     if (!/^[0-9A-F]{4}( [0-9A-F]{4}){3}$/.test(fp)) throw new Error('指纹不对: ' + fp);
     const members = doc.getElementById('settings-member-count').textContent;
     if (!members.includes('1 / 2')) throw new Error('成员数不对: ' + members);
-    doc.querySelector('[data-close-sheet="sheet-settings"]').click();
+    doc.getElementById('btn-audit').click();
+    await waitFor(() => doc.querySelectorAll('#audit-list li').length > 0, 5000, '审计列表');
+    doc.querySelector('[data-close-sheet="settings"]').click();
+    if (!doc.getElementById('sheet-settings').classList.contains('hidden')) throw new Error('设置页没关掉');
   });
 
   await check('搜索能命中已解密消息', async () => {
@@ -258,7 +263,8 @@ async function main() {
     if (!doc.querySelector('.search-result').textContent.includes('你好')) {
       throw new Error('搜索结果内容不对');
     }
-    doc.querySelector('[data-close-sheet="sheet-search"]').click();
+    doc.querySelector('[data-close-sheet="search"]').click();
+    if (!doc.getElementById('sheet-search').classList.contains('hidden')) throw new Error('搜索页没关掉');
   });
 
   await check('本地存储里有房间和密钥', async () => {

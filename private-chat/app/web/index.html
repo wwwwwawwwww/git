@@ -133,8 +133,19 @@
           <h1 id="room-title">私密聊天</h1>
           <p id="presence"><span class="dot"></span><span id="presence-text">连接中…</span></p>
         </div>
-        <button class="icon-btn" id="btn-search" type="button" title="搜索" aria-label="搜索">🔍</button>
-        <button class="icon-btn" id="btn-settings" type="button" title="设置" aria-label="设置">⋯</button>
+        <button class="icon-btn" id="btn-search" type="button" title="搜索" aria-label="搜索">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="6.5"></circle>
+            <path d="m15.5 15.5 4.5 4.5"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btn-settings" type="button" title="设置" aria-label="设置">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <circle cx="5" cy="12" r="1.8"></circle>
+            <circle cx="12" cy="12" r="1.8"></circle>
+            <circle cx="19" cy="12" r="1.8"></circle>
+          </svg>
+        </button>
       </header>
 
       <main id="messages" class="messages" role="log" aria-live="polite" aria-label="聊天记录">
@@ -142,7 +153,7 @@
           <button type="button" class="link-btn" id="btn-load-more">加载更早的消息</button>
           <span id="load-more-status"></span>
         </div>
-        <div class="empty-state" id="empty-state" hidden>
+        <div class="empty-state hidden" id="empty-state">
           <div class="empty-fish" aria-hidden="true">🫧</div>
           <p>鱼缸还是空的。</p>
           <p class="muted">说第一句话吧，只有你们两个人看得到。</p>
@@ -177,7 +188,7 @@
   <section class="sheet hidden" id="sheet-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <header class="sheet-header">
       <h2 id="settings-title">设置</h2>
-      <button class="icon-btn" type="button" data-close-sheet="sheet-settings" aria-label="关闭">✕</button>
+      <button class="icon-btn" type="button" data-close-sheet="settings" aria-label="关闭">✕</button>
     </header>
     <div class="sheet-body">
       <div class="card">
@@ -222,7 +233,7 @@
           <button type="button" class="secondary" id="btn-export">导出聊天记录</button>
           <button type="button" class="secondary" id="btn-audit">查看登录审计</button>
         </div>
-        <ul class="audit-list" id="audit-list" hidden></ul>
+        <ul class="audit-list hidden" id="audit-list"></ul>
         <p class="muted small">聊天密文保存在本机 SQLite（data/chat.db）。导出的 JSON 是解密后的明文，请自己收好。</p>
       </div>
 
@@ -244,7 +255,7 @@
   <section class="sheet hidden" id="sheet-invite" role="dialog" aria-modal="true" aria-labelledby="invite-title">
     <header class="sheet-header">
       <h2 id="invite-title">邀请链接</h2>
-      <button class="icon-btn" type="button" data-close-sheet="sheet-invite" aria-label="关闭">✕</button>
+      <button class="icon-btn" type="button" data-close-sheet="invite" aria-label="关闭">✕</button>
     </header>
     <div class="sheet-body">
       <p class="muted small">这条链接里带着房间钥匙（# 后面的部分），服务器看不到。只能经私密渠道交给对方，用一次就失效。</p>
@@ -270,14 +281,14 @@
   <section class="sheet hidden" id="sheet-search" role="dialog" aria-modal="true" aria-labelledby="search-title">
     <header class="sheet-header">
       <h2 id="search-title">搜索聊天记录</h2>
-      <button class="icon-btn" type="button" data-close-sheet="sheet-search" aria-label="关闭">✕</button>
+      <button class="icon-btn" type="button" data-close-sheet="search" aria-label="关闭">✕</button>
     </header>
     <div class="sheet-body">
       <label>关键词
         <input id="search-input" type="search" placeholder="在解密后的消息里找…" autocomplete="off">
       </label>
       <p class="muted small" id="search-status">只搜索已经加载的消息。</p>
-      <button type="button" class="secondary" id="btn-search-all" hidden>加载全部历史再搜索</button>
+      <button type="button" class="secondary hidden" id="btn-search-all">加载全部历史再搜索</button>
       <div class="search-results" id="search-results"></div>
     </div>
   </section>

@@ -242,7 +242,24 @@ function clearInviteHash() {
   }
 }
 
+/** iOS 键盘弹出时 visualViewport 会缩小，把聊天高度跟着调，输入框才不会被挡住 */
+function syncViewportHeight() {
+  if (!window.visualViewport) return;
+  const h = Math.round(window.visualViewport.height);
+  if (h > 0) document.documentElement.style.setProperty('--app-height', h + 'px');
+}
+
+function watchViewport() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  vv.addEventListener('resize', syncViewportHeight);
+  vv.addEventListener('scroll', syncViewportHeight);
+  window.addEventListener('orientationchange', () => setTimeout(syncViewportHeight, 150));
+}
+
 async function boot() {
+  syncViewportHeight();
+  watchViewport();
   wireUI();
   initObserver();
   registerSW();
@@ -759,6 +776,7 @@ function renderMessage(m) {
   } else if (m.payload) {
     if (m.payload.text) appendLinkified(bubble, String(m.payload.text));
     if (m.kind === 'image' && m.payload.attachment) {
+      bubble.classList.add('has-image');
       bubble.appendChild(renderImage(m.payload));
     } else if (m.kind === 'file' && m.payload.attachment) {
       bubble.appendChild(renderFile(m.payload));
@@ -834,13 +852,14 @@ function renderImage(payload) {
   const att = payload.attachment;
   const cached = state.objectUrls.get(att.id);
   const wrap = document.createElement('div');
-  wrap.className = 'img-wrap';
+  wrap.className = 'img-wrap loading';
   wrap.dataset.attId = att.id;
   wrap.dataset.nonce = att.nonce;
   wrap.dataset.size = String(payload.size || 0);
   wrap.dataset.mime = payload.mime || 'image/*';
   wrap.dataset.name = payload.fileName || '图片';
   if (cached) {
+    wrap.classList.remove('loading');
     wrap.appendChild(makeImg(cached, payload));
   } else {
     wrap.textContent = '解密中…';
@@ -889,8 +908,10 @@ async function loadImageInto(wrap) {
     const bytes = await downloadAttachmentBytes(id, nonce, size);
     const url = URL.createObjectURL(new Blob([bytes], { type: mime || 'image/*' }));
     rememberObjectUrl(id, url);
+    wrap.classList.remove('loading');
     wrap.replaceChildren(makeImg(url, { fileName: wrap.dataset.name }));
   } catch {
+    wrap.classList.remove('loading');
     wrap.textContent = '图片加载失败';
   }
 }
