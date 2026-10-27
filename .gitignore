@@ -26,6 +26,8 @@ logs/
 !.env.example
 *.pem
 *.key
+# SSH 私钥（沙箱写不进 ~/.ssh，暂放工作区，绝不入库）
+.ssh/
 
 # ---- Node.js ----
 node_modules/
@@ -45,3 +47,35 @@ venv/
 build/
 out/
 *.exe
+
+# ---- DSH 记忆库（本地私密数据，不提交）----
+.memory/
+.tdai/
+
+# ---- 第三方二进制 / 大文件（体积大、单文件超 GitHub 100MB 限制）----
+# NapCat + QQ 9.9.33 解包镜像，共 2.4 GB。
+# napcat/ 整个 Shell 分发目录都排除（含 config/ 里的明文 WebUI token），
+# 只放行我们自己写的几个启动器。
+qqbot/onekey/
+qqbot/qq933-extract/
+qqbot/napcat/*
+!qqbot/napcat/launcher*.bat
+!qqbot/napcat/launcher-elevate.ps1
+qqbot/*.zip
+qqbot/*.dll
+qqbot/*.node
+# mihomo 内核、面板 UI、安装包碎片，共 78 MB
+.clash/
+
+# ---- 个人备份 / 与项目无关的本机快照 ----
+AGENTS.md.bak-*
+memory-backup-*.zip
+pvz-reg-backup.reg
+# Aqrit's ddwrapper：给植物大战僵尸用的第三方代理 dll
+ddwrapper/
+ddwrapper.zip
+qqbot/elevated-test.txt
+
+# ---- B 站抓取产物（脚本生成的数据，不入库）----
+bili/*.json
+bili/covers/
