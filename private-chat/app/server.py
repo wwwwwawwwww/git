@@ -676,6 +676,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"ok": True, "version": VERSION, "time": now_ms()})
             return
 
+        if method == "GET" and path == "/api/config":
+            # 浏览器用 127.0.0.1 打开时，生成邀请链接要换成局域网地址，否则对方打不开
+            self.send_json(200, {
+                "lanIps": lan_ips(),
+                "port": self.server.server_address[1],
+            })
+            return
+
         if method == "POST" and path == "/api/rooms":
             self.api_create_room()
             return

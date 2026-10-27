@@ -55,6 +55,9 @@ const state = {
   fileKey: null,
   masterKey: null,
   searchAllLoaded: false,
+  lanIps: [],
+  lanPort: null,
+  configLoaded: false,
 };
 
 function storageGet(key) {
@@ -263,6 +266,7 @@ async function boot() {
   wireUI();
   initObserver();
   registerSW();
+  loadConfig();
   state.savedRoom = storageJSON(STORE.room);
 
   const invite = parseInviteHash();
@@ -1446,7 +1450,47 @@ async function changePassword(e) {
 }
 
 function inviteLink(code) {
-  return `${location.origin}${location.pathname}#/join?r=${encodeURIComponent(state.roomId)}&c=${encodeURIComponent(code)}&k=${encodeURIComponent(b64u(state.masterKey))}`;
+  return `${inviteOrigin()}${location.pathname}#/join?r=${encodeURIComponent(state.roomId)}&c=${encodeURIComponent(code)}&k=${encodeURIComponent(b64u(state.masterKey))}`;
+}
+
+function isLoopbackHost() {
+  const host = location.hostname;
+  return host === '127.0.0.1' || host === 'localhost' || host === '::1' || host === '[::1]';
+}
+
+function inviteOrigin() {
+  if (isLoopbackHost() && state.lanIps.length) {
+    const port = state.lanPort || location.port;
+    const suffix = port && String(port) !== '80' ? `:${port}` : '';
+    return `http://${state.lanIps[0]}${suffix}`;
+  }
+  return location.origin;
+}
+
+async function loadConfig() {
+  try {
+    const cfg = await api('/api/config');
+    if (Array.isArray(cfg.lanIps)) {
+      state.lanIps = cfg.lanIps.filter((ip) => typeof ip === 'string' && ip);
+    }
+    if (cfg.port) state.lanPort = cfg.port;
+  } catch {}
+  state.configLoaded = true;
+}
+
+function updateInviteHostNote() {
+  const note = $('invite-host-note');
+  if (!note) return;
+  if (!isLoopbackHost()) {
+    note.classList.add('hidden');
+    return;
+  }
+  if (state.lanIps.length) {
+    note.textContent = `你现在是用 127.0.0.1 打开的，链接已经自动换成局域网地址 ${inviteOrigin()}，对方才能打开。`;
+  } else {
+    note.textContent = '⚠️ 当前地址是 127.0.0.1，对方打不开。请用本机的局域网 IP（例如 http://172.26.x.x:8787）打开页面后再生成邀请。';
+  }
+  note.classList.remove('hidden');
 }
 
 async function generateInvite(expiryMs) {
@@ -1455,6 +1499,7 @@ async function generateInvite(expiryMs) {
     toast('房间已经满员了');
     return;
   }
+  if (!state.configLoaded) await loadConfig();
   const expiry = expiryMs || Number($('invite-expiry').value) || 7 * 86400000;
   const code = C.randomB64(32);
   const hash = C.bytesToHex(C.sha256(C.utf8(code)));
@@ -1463,6 +1508,7 @@ async function generateInvite(expiryMs) {
     await api('/api/invite', { method: 'POST', body: { hash, expiresAt: Date.now() + expiry } });
     state.currentInvite = { code, link: inviteLink(code) };
     $('invite-link').value = state.currentInvite.link;
+    updateInviteHostNote();
     openSheet('invite');
   } catch (e) {
     toast(e.message || '生成邀请失败');

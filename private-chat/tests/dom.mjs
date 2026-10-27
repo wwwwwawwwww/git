@@ -215,6 +215,13 @@ async function main() {
     await waitFor(() => doc.getElementById('invite-link').value.length > 20, 15000, '邀请链接');
     const link = doc.getElementById('invite-link').value;
     if (!link.includes('#/join?') || !link.includes('&k=')) throw new Error('链接格式不对: ' + link);
+    const cfg = await (await realFetch(`${BASE}/api/config`)).json();
+    if (cfg.lanIps && cfg.lanIps.length) {
+      const host = new URL(link).hostname;
+      if (host === '127.0.0.1' || host === 'localhost') {
+        throw new Error('邀请链接还是本机地址，对方打不开: ' + link);
+      }
+    }
     doc.querySelector('[data-close-sheet="invite"]').click();
     if (!doc.getElementById('sheet-invite').classList.contains('hidden')) throw new Error('邀请弹层没关掉');
   });

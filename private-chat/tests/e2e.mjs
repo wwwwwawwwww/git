@@ -481,6 +481,14 @@ async function main() {
     assert.equal(r.headers.get('referrer-policy'), 'no-referrer');
   });
 
+  await check('局域网配置接口', async () => {
+    const r = await fetch(`${BASE}/api/config`);
+    assert.equal(r.status, 200);
+    const data = await r.json();
+    assert.ok(Array.isArray(data.lanIps));
+    assert.equal(typeof data.port, 'number');
+  });
+
   await check('静态页面和 PWA 资源可访问', async () => {
     const home = await fetch(`${BASE}/`);
     assert.equal(home.status, 200);
