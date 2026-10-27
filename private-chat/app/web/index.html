@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071018">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="只属于两个人的私密聊天，端到端加密，数据保存在本地。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="私密聊天">
+  <title>私密聊天</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- 启动中 -->
+    <section id="screen-boot" class="screen boot">
+      <div class="boot-fish">🐳</div>
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="boot-text">正在打开鱼缸…</p>
+    </section>
+
+    <!-- 欢迎 / 创建 / 加入 / 登录 -->
+    <section id="screen-welcome" class="screen welcome hidden">
+      <header class="brand">
+        <div class="brand-fish" aria-hidden="true">🐳</div>
+        <div>
+          <h1>私密聊天</h1>
+          <p>只有两个人的鱼缸 · 端到端加密</p>
+        </div>
+      </header>
+
+      <div class="welcome-card">
+        <div class="tabs" role="tablist" aria-label="入口">
+          <button class="tab is-active" data-tab="create" role="tab" aria-selected="true">创建房间</button>
+          <button class="tab" data-tab="join" role="tab" aria-selected="false">加入</button>
+          <button class="tab" data-tab="login" role="tab" aria-selected="false">登录</button>
+        </div>
+
+        <!-- 创建 -->
+        <form id="form-create" class="pane" novalidate>
+          <p class="hint">先给鱼缸起个名，设一个只有你们俩知道的密码。</p>
+          <label>房间名
+            <input id="create-room-name" type="text" maxlength="40" value="两个人的房间" autocomplete="off">
+          </label>
+          <label>我的昵称
+            <input id="create-name" type="text" maxlength="24" placeholder="比如：阿鱼" autocomplete="nickname" required>
+          </label>
+          <label>密码
+            <input id="create-password" type="password" minlength="10" placeholder="至少 10 位，越随意越好" autocomplete="new-password" required>
+          </label>
+          <label>再输一次
+            <input id="create-password2" type="password" minlength="10" autocomplete="new-password" required>
+          </label>
+          <div class="pw-meter" id="create-pw-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <p class="warn">⚠️ 密码不会上传，也无法找回。忘了密码 = 聊天记录永远打不开，请自己记牢。</p>
+          <button type="submit" class="primary" id="create-submit">创建并进入</button>
+          <p class="form-error" id="create-error" role="alert"></p>
+        </form>
+
+        <!-- 加入 -->
+        <form id="form-join" class="pane hidden" novalidate>
+          <p class="hint">把对方发来的邀请链接粘到这里。链接里带着房间钥匙，不会经过服务器。</p>
+          <label>邀请链接
+            <textarea id="join-link" rows="2" placeholder="粘贴 https://…/#/join?r=…&c=…&k=…" autocomplete="off" spellcheck="false"></textarea>
+          </label>
+          <div id="join-preview" class="join-preview hidden"></div>
+          <label>我的昵称
+            <input id="join-name" type="text" maxlength="24" placeholder="对方会看到这个名字" autocomplete="nickname" required>
+          </label>
+          <label>设置我的密码
+            <input id="join-password" type="password" minlength="10" placeholder="至少 10 位" autocomplete="new-password" required>
+          </label>
+          <label>再输一次
+            <input id="join-password2" type="password" minlength="10" autocomplete="new-password" required>
+          </label>
+          <p class="warn">⚠️ 密码无法找回，忘了就打不开聊天记录了。</p>
+          <button type="submit" class="primary" id="join-submit">加入房间</button>
+          <p class="form-error" id="join-error" role="alert"></p>
+        </form>
+
+        <!-- 登录 -->
+        <form id="form-login" class="pane hidden" novalidate>
+          <p class="hint">在这台设备上登录已有的房间。房间码是 8 位，创建后在设置里能看到。</p>
+          <label>房间码
+            <input id="login-room" type="text" maxlength="32" placeholder="例如 K7M2PQ9X" autocomplete="off"
+                   autocapitalize="characters" spellcheck="false" required>
+          </label>
+          <label>昵称
+            <input id="login-name" type="text" maxlength="24" autocomplete="nickname" required>
+          </label>
+          <label>密码
+            <input id="login-password" type="password" autocomplete="current-password" required>
+          </label>
+          <button type="submit" class="primary" id="login-submit">登录</button>
+          <p class="form-error" id="login-error" role="alert"></p>
+        </form>
+      </div>
+
+      <footer class="welcome-foot">
+        <p>消息和附件在浏览器里加密，服务器只存密文。</p>
+      </footer>
+    </section>
+
+    <!-- 解锁（有会话但本机没有密钥） -->
+    <section id="screen-unlock" class="screen unlock hidden">
+      <div class="unlock-card">
+        <div class="brand-fish small" aria-hidden="true">🔒</div>
+        <h2>解锁鱼缸</h2>
+        <p class="hint">这台设备还记着登录状态，但聊天密钥不在。输入密码把密钥解出来。</p>
+        <p class="unlock-room" id="unlock-room"></p>
+        <form id="form-unlock" novalidate>
+          <label>密码
+            <input id="unlock-password" type="password" autocomplete="current-password" required autofocus>
+          </label>
+          <button type="submit" class="primary" id="unlock-submit">解锁</button>
+          <p class="form-error" id="unlock-error" role="alert"></p>
+        </form>
+        <button type="button" class="link-btn" id="unlock-logout">不是我，退出登录</button>
+      </div>
+    </section>
+
+    <!-- 聊天 -->
+    <section id="screen-chat" class="screen chat hidden">
+      <header class="chat-header">
+        <div class="peer-avatar" id="peer-avatar" aria-hidden="true">?</div>
+        <div class="chat-title">
+          <h1 id="room-title">私密聊天</h1>
+          <p id="presence"><span class="dot"></span><span id="presence-text">连接中…</span></p>
+        </div>
+        <button class="icon-btn" id="btn-search" type="button" title="搜索" aria-label="搜索">🔍</button>
+        <button class="icon-btn" id="btn-settings" type="button" title="设置" aria-label="设置">⋯</button>
+      </header>
+
+      <main id="messages" class="messages" role="log" aria-live="polite" aria-label="聊天记录">
+        <div class="load-more" id="load-more">
+          <button type="button" class="link-btn" id="btn-load-more">加载更早的消息</button>
+          <span id="load-more-status"></span>
+        </div>
+        <div class="empty-state" id="empty-state" hidden>
+          <div class="empty-fish" aria-hidden="true">🫧</div>
+          <p>鱼缸还是空的。</p>
+          <p class="muted">说第一句话吧，只有你们两个人看得到。</p>
+        </div>
+        <div id="timeline"></div>
+      </main>
+
+      <div id="typing" class="typing hidden"><span class="typing-dots"><i></i><i></i><i></i></span>对方正在输入…</div>
+      <button id="jump-latest" class="jump-latest hidden" type="button">有新消息 ↓</button>
+
+      <footer class="composer">
+        <input type="file" id="file-input" hidden>
+        <button class="icon-btn attach" id="btn-attach" type="button" title="发送文件或图片" aria-label="发送文件或图片">＋</button>
+        <textarea id="input" rows="1" placeholder="说点什么…（Enter 发送）" maxlength="8000" aria-label="消息输入框"></textarea>
+        <button class="send-btn" id="btn-send" type="button" title="发送" aria-label="发送">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3.4 20.6 21 12 3.4 3.4l.01 6.63L15 12 3.41 13.97z" fill="currentColor"/></svg>
+        </button>
+      </footer>
+    </section>
+  </div>
+
+  <!-- 遮罩 / 进度 -->
+  <div id="overlay" class="overlay hidden" role="status" aria-live="polite">
+    <div class="overlay-box">
+      <div class="spinner"></div>
+      <p id="overlay-text">处理中…</p>
+    </div>
+  </div>
+
+  <!-- 设置 -->
+  <div class="sheet-backdrop hidden" id="settings-backdrop"></div>
+  <section class="sheet hidden" id="sheet-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <header class="sheet-header">
+      <h2 id="settings-title">设置</h2>
+      <button class="icon-btn" type="button" data-close-sheet="sheet-settings" aria-label="关闭">✕</button>
+    </header>
+    <div class="sheet-body">
+      <div class="card">
+        <h3>这个鱼缸</h3>
+        <dl class="kv">
+          <dt>房间名</dt><dd id="settings-room-name">—</dd>
+          <dt>房间码</dt><dd><button type="button" class="copy-chip" id="settings-room-code" title="点击复制">—</button></dd>
+          <dt>密钥指纹</dt><dd><button type="button" class="copy-chip" id="settings-fingerprint" title="点击复制">—</button></dd>
+          <dt>成员</dt><dd id="settings-member-count">—</dd>
+          <dt>创建时间</dt><dd id="settings-created">—</dd>
+        </dl>
+        <p class="muted small">指纹由房间密钥算出。两台设备显示的指纹应该完全一样；不一样就说明有人动了服务器，别继续聊。</p>
+      </div>
+
+      <div class="card" id="settings-invite-card">
+        <h3>邀请对方</h3>
+        <p class="muted small" id="settings-invite-hint">生成一条一次性邀请链接，发给另一个人。</p>
+        <button type="button" class="secondary" id="btn-generate-invite">生成邀请链接</button>
+      </div>
+
+      <div class="card">
+        <h3>修改密码</h3>
+        <p class="muted small">修改后，其他设备上的登录会被踢下线。</p>
+        <form id="form-password" novalidate>
+          <label>当前密码
+            <input id="pw-current" type="password" autocomplete="current-password" required>
+          </label>
+          <label>新密码
+            <input id="pw-new" type="password" minlength="10" autocomplete="new-password" required>
+          </label>
+          <label>再输一次
+            <input id="pw-new2" type="password" minlength="10" autocomplete="new-password" required>
+          </label>
+          <button type="submit" class="secondary" id="pw-submit">修改密码</button>
+          <p class="form-error" id="pw-error" role="alert"></p>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>数据</h3>
+        <div class="btn-row">
+          <button type="button" class="secondary" id="btn-export">导出聊天记录</button>
+          <button type="button" class="secondary" id="btn-audit">查看登录审计</button>
+        </div>
+        <ul class="audit-list" id="audit-list" hidden></ul>
+        <p class="muted small">聊天密文保存在本机 SQLite（data/chat.db）。导出的 JSON 是解密后的明文，请自己收好。</p>
+      </div>
+
+      <div class="card danger-zone">
+        <h3>安全</h3>
+        <div class="btn-row">
+          <button type="button" class="secondary" id="btn-lock">锁定本机</button>
+          <button type="button" class="danger" id="btn-logout">退出登录</button>
+        </div>
+        <p class="muted small">锁定会从这台设备删掉聊天密钥（服务器上的登录还在），下次要用密码解锁。</p>
+      </div>
+
+      <p class="muted small version" id="settings-version"></p>
+    </div>
+  </section>
+
+  <!-- 邀请 -->
+  <div class="sheet-backdrop hidden" id="invite-backdrop"></div>
+  <section class="sheet hidden" id="sheet-invite" role="dialog" aria-modal="true" aria-labelledby="invite-title">
+    <header class="sheet-header">
+      <h2 id="invite-title">邀请链接</h2>
+      <button class="icon-btn" type="button" data-close-sheet="sheet-invite" aria-label="关闭">✕</button>
+    </header>
+    <div class="sheet-body">
+      <p class="muted small">这条链接里带着房间钥匙（# 后面的部分），服务器看不到。只能经私密渠道交给对方，用一次就失效。</p>
+      <label>一次性链接
+        <textarea id="invite-link" rows="4" readonly spellcheck="false"></textarea>
+      </label>
+      <label>有效期
+        <select id="invite-expiry">
+          <option value="86400000">24 小时</option>
+          <option value="604800000" selected>7 天</option>
+        </select>
+      </label>
+      <div class="btn-row">
+        <button type="button" class="primary" id="btn-copy-invite">复制链接</button>
+        <button type="button" class="secondary" id="btn-regenerate-invite">重新生成</button>
+      </div>
+      <p class="form-error" id="invite-error" role="alert"></p>
+    </div>
+  </section>
+
+  <!-- 搜索 -->
+  <div class="sheet-backdrop hidden" id="search-backdrop"></div>
+  <section class="sheet hidden" id="sheet-search" role="dialog" aria-modal="true" aria-labelledby="search-title">
+    <header class="sheet-header">
+      <h2 id="search-title">搜索聊天记录</h2>
+      <button class="icon-btn" type="button" data-close-sheet="sheet-search" aria-label="关闭">✕</button>
+    </header>
+    <div class="sheet-body">
+      <label>关键词
+        <input id="search-input" type="search" placeholder="在解密后的消息里找…" autocomplete="off">
+      </label>
+      <p class="muted small" id="search-status">只搜索已经加载的消息。</p>
+      <button type="button" class="secondary" id="btn-search-all" hidden>加载全部历史再搜索</button>
+      <div class="search-results" id="search-results"></div>
+    </div>
+  </section>
+
+  <!-- 确认框 -->
+  <div class="overlay hidden" id="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="confirm-box">
+      <h2 id="confirm-title">确认</h2>
+      <p id="confirm-text"></p>
+      <div class="btn-row">
+        <button type="button" class="secondary" id="confirm-cancel">取消</button>
+        <button type="button" class="danger" id="confirm-ok">继续</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图片查看 -->
+  <div class="overlay lightbox hidden" id="lightbox" role="dialog" aria-modal="true" aria-label="查看图片">
+    <button class="icon-btn lightbox-close" type="button" id="lightbox-close" aria-label="关闭">✕</button>
+    <img id="lightbox-img" alt="">
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

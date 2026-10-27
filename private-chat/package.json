@@ -1,0 +1,16 @@
+{
+  "name": "private-chat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "两人私密聊天：端到端加密 + 本地 SQLite 存储",
+  "scripts": {
+    "test": "node tests/test_crypto.mjs",
+    "test:e2e": "node tests/e2e.mjs",
+    "test:dom": "node tests/dom.mjs && node tests/dom-flows.mjs",
+    "test:all": "node tests/test_crypto.mjs && node tests/e2e.mjs && node tests/dom.mjs && node tests/dom-flows.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3"
+  }
+}

@@ -1,0 +1,12 @@
+data/
+data-dev/
+data-browser/
+.edge-tmp*/
+node_modules/
+.pnpm-store/
+tests/shots/
+shot-*.png
+dom.html
+edge-err.txt
+__pycache__/
+*.pyc
