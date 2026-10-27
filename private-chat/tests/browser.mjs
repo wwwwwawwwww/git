@@ -339,6 +339,20 @@ async function main() {
     );
   });
 
+  await check('正在输入提示', async () => {
+    await B.cdp.eval(`(() => {
+      const i = document.getElementById('input');
+      i.value = '正在打字';
+      i.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    await A.cdp.waitFor(
+      "!document.getElementById('typing').classList.contains('hidden')",
+      10000, 'A 看到对方正在输入',
+    );
+    await B.cdp.eval("document.getElementById('input').value = ''; true");
+  });
+
   await check('发送加密图片', async () => {
     await A.cdp.eval(`(async () => {
       const canvas = document.createElement('canvas');
@@ -394,7 +408,30 @@ async function main() {
     await A.cdp.eval("document.querySelector('[data-close-sheet=\"settings\"]').click(); true");
   });
 
-  await check('锁定本机后用密码解锁', async () => {
+  await check('修改密码', async () => {
+    await A.cdp.eval("document.getElementById('btn-settings').click(); true");
+    await A.cdp.waitFor("!document.getElementById('sheet-settings').classList.contains('hidden')", 5000, '设置页');
+    await A.cdp.eval(`(() => {
+      const set = (id, v) => {
+        const el = document.getElementById(id);
+        el.value = v;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      set('pw-current', 'Fish-Bowl-2026!strong');
+      set('pw-new', 'Fish-Bowl-2027!new');
+      set('pw-new2', 'Fish-Bowl-2027!new');
+      document.getElementById('form-password').requestSubmit();
+      return true;
+    })()`);
+    await A.cdp.waitFor(
+      "document.getElementById('toast').textContent.includes('密码已修改')",
+      40000, '改密成功',
+    );
+    await A.cdp.eval("document.querySelector('[data-close-sheet=\"settings\"]').click(); true");
+    await sleep(300);
+  });
+
+  await check('锁定本机后用新密码解锁', async () => {
     await A.cdp.eval("document.getElementById('btn-settings').click(); true");
     await A.cdp.waitFor("!document.getElementById('sheet-settings').classList.contains('hidden')", 5000, '设置页');
     await A.cdp.eval("document.getElementById('btn-lock').click(); true");
@@ -404,7 +441,7 @@ async function main() {
     await A.cdp.screenshot('07-unlock.png');
     await A.cdp.eval(`(() => {
       const el = document.getElementById('unlock-password');
-      el.value = 'Fish-Bowl-2026!strong';
+      el.value = 'Fish-Bowl-2027!new';
       el.dispatchEvent(new Event('input', { bubbles: true }));
       document.getElementById('form-unlock').requestSubmit();
       return true;

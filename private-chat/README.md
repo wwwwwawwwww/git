@@ -12,6 +12,14 @@
 
 > 密码不在任何地方保存，也无法找回。**忘了密码 = 聊天记录永远打不开，请自己记牢。**
 
+## 界面预览
+
+<p>
+  <img src="docs/welcome.png" width="250" alt="创建房间">
+  <img src="docs/chat.png" width="250" alt="聊天界面">
+  <img src="docs/settings.png" width="250" alt="设置">
+</p>
+
 ---
 
 ## 一、五分钟跑起来
@@ -50,10 +58,14 @@
 1. 手机连和电脑**同一个 Wi-Fi**
 2. 浏览器打开启动窗口里显示的 `http://192.168.x.x:8787`
 3. 第一次可能在 Windows 防火墙弹窗里点「允许访问」
-4. 没弹窗或连不上：双击 `allow-firewall.bat`，在 UAC 提示里点「是」
+4. 没弹窗或连不上：双击 `allow-firewall.bat`，在 UAC 提示里点「是」。
+   它只放行**同一局域网**的 TCP 8787（不向整个互联网开放）
 
 如果换了 Wi-Fi 或路由器重启，IP 可能变化。重新看启动窗口打印的地址即可；
 也可以在路由器里给电脑绑定固定 IP。
+
+> 有些公司/学校 Wi-Fi 会隔离设备，手机和电脑互相访问不了。这种网络下可以：
+> 让电脑连手机热点（同一热点通常能互通），或者用下面的 Tailscale 方案。
 
 ---
 
@@ -190,8 +202,8 @@ private-chat/
 
 ## 六、开机自启（可选）
 
-双击 `install-autostart.bat`，会创建一个 Windows 计划任务「PrivateChat」，
-登录 Windows 后在后台启动服务（不弹黑窗口）。
+双击 `install-autostart.bat`，会在当前用户的「启动」文件夹里放一个 `PrivateChat.vbs`，
+登录 Windows 后静默启动服务（不弹黑窗口，不需要管理员权限）。
 
 - 取消：双击 `uninstall-autostart.bat`
 - 注意：自启用的是 `pythonw.exe`，没有控制台窗口，日志看不到；
@@ -219,7 +231,13 @@ private-chat/
     dom.mjs                # jsdom 前端主流程测试
     dom-flows.mjs          # 邀请加入 / 登录 / 解锁流程测试
     browser.mjs            # 真实 Edge 测试（需要非沙箱环境）
-  tools/make_icons.py
+    run-all.ps1            # 一键跑上面四组测试
+  docs/                    # README 用的界面截图
+  tools/
+    make_icons.py
+    allow-firewall.ps1
+    install-autostart.ps1
+    uninstall-autostart.ps1
   data/                    # 运行时生成，已被 .gitignore 忽略
   start.bat / start.ps1
   allow-firewall.bat
@@ -236,18 +254,32 @@ private-chat/
 # 安装前端测试依赖（只需一次）
 pnpm install
 
-# 全部测试（需要 Node 18+；本机可用 DSH 自带的 node）
+# 一键跑全部测试（需要 Node 18+；本机可用 DSH 自带的 node）
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/run-all.ps1
+
+# 也可以单独跑：
 node tests/test_crypto.mjs
 node tests/e2e.mjs
 node tests/dom.mjs
 node tests/dom-flows.mjs
 
-# 真实浏览器测试（可选；需要能在非沙箱环境启动 Edge）
+# 真实浏览器测试（可选；需要能启动 Edge）
 node tests/browser.mjs
 ```
 
 `tests/e2e.mjs` 和两个 DOM 测试会自己起临时服务（随机端口）并在结束后清理，
 不会动 `data/` 里的正式数据。
+
+### 已验证
+
+本项目已经在本机跑过：
+
+- 加密原语 **23 项**：SHA-256 / HMAC / PBKDF2 对照 Node OpenSSL，AEAD 对照 RFC 8439 官方向量
+- 真实 HTTP 协议 **19 项**：创建房间、邀请、加入、登录、消息、附件、SSE、改密码、审计、静态资源
+- jsdom 前端 **11 项**：创建/发消息/搜索/设置，以及邀请加入、房间码登录、本机解锁
+- 真实 Edge（两台“设备”）**16 项**：双向实时消息、已读、在线状态、正在输入、加密图片、刷新恢复、改密码、锁定解锁、无控制台报错
+
+浏览器测试的截图在 `tests/shots/`（下次运行会覆盖）。
 
 ### 端口 / 参数
 
