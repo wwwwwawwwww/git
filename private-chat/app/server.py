@@ -521,6 +521,13 @@ class Handler(BaseHTTPRequestHandler):
             "%s - %s %s\n" % (self.client_address[0], self.command, urlparse(self.path).path)
         )
 
+    def handle_one_request(self):
+        # 浏览器关页面/断网时直接断开，不打印无意义的 traceback
+        try:
+            super().handle_one_request()
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            self.close_connection = True
+
     def _base_headers(self) -> dict:
         headers = dict(SECURITY_HEADERS)
         headers["Cache-Control"] = "no-store"
@@ -603,7 +610,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.handle_api(method, path, query)
             except ApiError as e:
                 self.send_error_json(e.status, e.code, e.message)
-            except BrokenPipeError:
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 pass
             except Exception:
                 traceback.print_exc()
